@@ -1,6 +1,6 @@
 # Managing Helm releases the GitOps way
 
-[![Build Status](https://travis-ci.org/stefanprodan/gitops-helm.svg?branch=master)](https://travis-ci.org/stefanprodan/gitops-helm)
+[![Build Status](https://travis-ci.org/revollat/gitops-helm.svg?branch=master)](https://travis-ci.org/revollat/gitops-helm)
 
 **What is GitOps?**
 
@@ -28,7 +28,7 @@ In order to apply the GitOps pipeline model to Kubernetes you need three things:
 
 I will be using GitHub to host the config repo, Docker Hub as the container registry and Weave Flux OSS as the GitOps Kubernetes Operator.
 
-![gitops](https://github.com/stefanprodan/openfaas-flux/blob/master/docs/screens/flux-helm-gitops.png)
+![gitops](https://github.com/revollat/openfaas-flux/blob/master/docs/screens/flux-helm-gitops.png)
 
 ### Install Helm and Tiller
 
@@ -61,7 +61,7 @@ helm init --skip-refresh --upgrade --service-account tiller
 ### Install Weave Flux
 
 The first step in automating Helm releases with [Weave Flux](https://github.com/weaveworks/flux) is to create a Git repository with your charts source code.
-You can fork the [gitops-helm](https://github.com/stefanprodan/gitops-helm) project and use it as a template for your cluster config.
+You can fork the [gitops-helm](https://github.com/revollat/gitops-helm) project and use it as a template for your cluster config.
 
 Add the Weave Flux chart repo:
 
@@ -70,13 +70,13 @@ helm repo add weaveworks https://weaveworks.github.io/flux
 ```
 
 Install Weave Flux and its Helm Operator by specifying your fork URL 
-(replace `stefanprodan` with your GitHub username): 
+(replace `revollat` with your GitHub username): 
 
 ```bash
 helm install --name flux \
 --set rbac.create=true \
 --set helmOperator.create=true \
---set git.url=ssh://git@github.com/stefanprodan/gitops-helm \
+--set git.url=ssh://git@github.com/revollat/gitops-helm \
 --namespace flux \
 weaveworks/flux
 ```
@@ -125,7 +125,7 @@ The config repo has the following structure:
         └── podinfo.yaml
 ```
 
-I will be using [podinfo](https://github.com/stefanprodan/k8s-podinfo) to demonstrate a full CI/CD pipeline including promoting releases between environments.  
+I will be using [podinfo](https://github.com/revollat/k8s-podinfo) to demonstrate a full CI/CD pipeline including promoting releases between environments.  
 
 I'm assuming the following Git branching model:
 * dev branch (feature-ready state)
@@ -142,23 +142,23 @@ The *ci-mock.sh* script does the following:
 * builds a Docker image with the format: `yourname/podinfo:branch-sha`
 * pushes the image to Docker Hub
 
-Let's create an image corresponding to the `dev` branch (replace `stefanprodan` with your Docker Hub username):
+Let's create an image corresponding to the `dev` branch (replace `revollat` with your Docker Hub username):
 
 ```
-$ cd hack && ./ci-mock.sh -r stefanprodan/podinfo -b dev
+$ cd hack && ./ci-mock.sh -r revollat/podinfo -b dev
 
 Sending build context to Docker daemon  4.096kB
 Step 1/15 : FROM golang:1.10 as builder
 ....
 Step 9/15 : FROM alpine:3.7
 ....
-Step 12/15 : COPY --from=builder /go/src/github.com/stefanprodan/k8s-podinfo/podinfo .
+Step 12/15 : COPY --from=builder /go/src/github.com/revollat/k8s-podinfo/podinfo .
 ....
 Step 15/15 : CMD ["./podinfo"]
 ....
 Successfully built 71bee4549fb2
-Successfully tagged stefanprodan/podinfo:dev-kb9lm91e
-The push refers to repository [docker.io/stefanprodan/podinfo]
+Successfully tagged revollat/podinfo:dev-kb9lm91e
+The push refers to repository [docker.io/revollat/podinfo]
 36ced78d2ca2: Pushed 
 ```
 
@@ -179,7 +179,7 @@ spec:
   chartGitPath: podinfo
   releaseName: podinfo-dev
   values:
-    image: stefanprodan/podinfo:dev-kb9lm91e
+    image: revollat/podinfo:dev-kb9lm91e
     replicaCount: 1
 ```
 
@@ -197,7 +197,7 @@ With the `flux.weave.works` annotations I instruct Flux to automate this release
 When a new tag with the prefix `dev` is pushed to Docker Hub, Flux will update the image field in the yaml file, 
 will commit and push the change to Git and finally will apply the change on the cluster. 
 
-![gitops-automation](https://github.com/stefanprodan/openfaas-flux/blob/master/docs/screens/flux-helm-image-update.png)
+![gitops-automation](https://github.com/revollat/openfaas-flux/blob/master/docs/screens/flux-helm-image-update.png)
 
 When the `podinfo-dev` FluxHelmRelease object changes inside the cluster, 
 Kubernetes API will notify the Flux Helm Operator and the operator will perform a Helm release upgrade. 
@@ -213,7 +213,7 @@ REVISION	UPDATED                 	STATUS    	CHART        	DESCRIPTION
 The Flux Helm Operator reacts to changes in the FluxHelmResources collection but will also detect changes in the charts source files.
 If I make a change to the podinfo chart, the operator will pick that up and run an upgrade. 
 
-![gitops-chart-change](https://github.com/stefanprodan/openfaas-flux/blob/master/docs/screens/flux-helm-chart-update.png)
+![gitops-chart-change](https://github.com/revollat/openfaas-flux/blob/master/docs/screens/flux-helm-chart-update.png)
 
 ```
 $ helm history podinfo-dev
@@ -229,10 +229,10 @@ I would create a release candidate by merging the podinfo code from `dev` into t
 The CI would kick in and publish a new image:
 
 ```bash
-$ cd hack && ./ci-mock.sh -r stefanprodan/podinfo -b stg
+$ cd hack && ./ci-mock.sh -r revollat/podinfo -b stg
 
-Successfully tagged stefanprodan/podinfo:stg-9ij63o4c
-The push refers to repository [docker.io/stefanprodan/podinfo]
+Successfully tagged revollat/podinfo:stg-9ij63o4c
+The push refers to repository [docker.io/revollat/podinfo]
 8f21c3669055: Pushed 
 ```
 
@@ -252,7 +252,7 @@ spec:
   chartGitPath: podinfo
   releaseName: podinfo-rc
   values:
-    image: stefanprodan/podinfo:stg-9ij63o4c
+    image: revollat/podinfo:stg-9ij63o4c
     replicaCount: 2
     hpa:
       enabled: true
@@ -269,7 +269,7 @@ If I want to create a new environment, let's say for hotfixes testing, I would d
 * create a dir `releases/hotfix`
 * create a FluxHelmRelease named `podinfo-hotfix`
 * set the automation filter to `glob:hotfix-*`
-* make the CI tooling publish images from my hotfix branch to `stefanprodan/podinfo:hotfix-sha`
+* make the CI tooling publish images from my hotfix branch to `revollat/podinfo:hotfix-sha`
 
 ### Production promotions with sem ver
 
@@ -281,10 +281,10 @@ After merging `stg` into `master` via a pull request, I would cut a release by t
 When I push the git tag, the CI will publish a new image in the `repo/app:git_tag` format:
 
 ```bash
-$ cd hack && ./ci-mock.sh -r stefanprodan/podinfo -v 0.4.10
+$ cd hack && ./ci-mock.sh -r revollat/podinfo -v 0.4.10
 
 Successfully built f176482168f8
-Successfully tagged stefanprodan/podinfo:0.4.10
+Successfully tagged revollat/podinfo:0.4.10
 ``` 
 
 If I want to automate the production deployment based on version tags, I would use `semver` filters instead of `glob`:
@@ -302,19 +302,19 @@ spec:
   chartGitPath: podinfo
   releaseName: podinfo-prod
   values:
-    image: stefanprodan/podinfo:0.4.10
+    image: revollat/podinfo:0.4.10
     replicaCount: 3
 ```
 
 Now if I release a new patch, let's say `0.4.11`, Flux will automatically deploy it.
 
 ```bash
-$ cd hack && ./ci-mock.sh -r stefanprodan/podinfo -v 0.4.11
+$ cd hack && ./ci-mock.sh -r revollat/podinfo -v 0.4.11
 
-Successfully tagged stefanprodan/podinfo:0.4.11
+Successfully tagged revollat/podinfo:0.4.11
 ```
 
-![gitops-semver](https://github.com/stefanprodan/openfaas-flux/blob/master/docs/screens/flux-helm-semver.png)
+![gitops-semver](https://github.com/revollat/openfaas-flux/blob/master/docs/screens/flux-helm-semver.png)
 
 ### Managing Kubernetes secrets
 
@@ -395,7 +395,7 @@ git commit -a -m "Add basic auth credentials to dev namespace" && git push
 Flux will apply the sealed secret on your cluster and sealed-secrets controller will then decrypt it into a 
 Kubernetes secret. 
 
-![SealedSecrets](https://github.com/stefanprodan/openfaas-flux/blob/master/docs/screens/flux-secrets.png)
+![SealedSecrets](https://github.com/revollat/openfaas-flux/blob/master/docs/screens/flux-secrets.png)
 
 To prepare for disaster recovery you should backup the sealed-secrets controller private key with:
 
